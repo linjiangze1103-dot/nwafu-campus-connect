@@ -1,0 +1,15 @@
+name: Windows build and core tests
+on: [push, pull_request]
+permissions:
+  contents: read
+jobs:
+  verify:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build
+        shell: powershell
+        run: .\Build.ps1
+      - name: Core tests
+        shell: powershell
+        run: .\tests\Run-Tests.ps1

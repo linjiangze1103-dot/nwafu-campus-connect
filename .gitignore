@@ -1,0 +1,16 @@
+build/
+dist/
+*.exe
+*.pdb
+*.zip
+*.log
+account.dat
+credential.xml
+runtime-*.json
+settings.json
+process.json
+*-test-*/
+ui-storage-*/
+preview-data/
+probe-data/
+.vs/

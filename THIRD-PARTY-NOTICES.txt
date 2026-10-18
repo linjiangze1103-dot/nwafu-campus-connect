@@ -1,0 +1,22 @@
+Authentication engine: BitSrunLoginGo v1.6.8
+Project: https://github.com/Mmx233/BitSrunLoginGo
+Corresponding source: release archive: third-party/BitSrunLoginGo-v1.6.8-source.zip (upstream source is also linked above)
+Upstream license: GNU Affero General Public License v3.0 (LICENSE-AGPL-3.0.txt)
+Engine binary is unmodified. GUI communicates with it through a temporary local JSON configuration.
+The application icon is an independent graphic. The interface includes the university crest and name lockup from the official university website.
+
+Official release asset:
+https://github.com/Mmx233/BitSrunLoginGo/releases/download/v1.6.8/bitsrun_windows_amd64.tar.gz
+Asset SHA256: ec98f739ff7884096b6ca2e0b91afb4e2a9fb6d81d203c35e51e3c13334585a6
+Unpacked engine SHA256: 509e8842167a479a563f24d154d9d4536b2541b46f1231d13ee37a51a1107785
+
+GUI and controller source in src/ is distributed under AGPL-3.0-or-later.
+Build uses only Windows .NET Framework assemblies. No Python or Go compiler is needed to run the package.
+All bundled engine source files retain their upstream copyright and license notices.
+
+University visual identity asset (src/crest.png):
+Source page: https://www.nwafu.edu.cn/xxgk/xxbz/index.htm
+Original image: https://www.nwafu.edu.cn/images/2026-03/7bcfae3944da4bbeb540575d4ef21be0.png
+The image is embedded unmodified and displayed with its original proportions.
+The university identity asset and associated marks belong to their respective rights holder; the software AGPL license does not grant trademark rights or relicense the identity asset. This is an unofficial student utility, with no university endorsement claimed.
+
