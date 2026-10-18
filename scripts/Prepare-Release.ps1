@@ -1,9 +1,9 @@
-param([string]$OutputDirectory=(Join-Path (Split-Path $PSScriptRoot -Parent) 'dist'))
+﻿param([string]$OutputDirectory=(Join-Path (Split-Path $PSScriptRoot -Parent) 'dist'))
 $ErrorActionPreference='Stop'
 $root=Split-Path $PSScriptRoot -Parent
 New-Item -ItemType Directory -Force -Path $OutputDirectory | Out-Null
 $OutputDirectory=(Resolve-Path $OutputDirectory).Path
-$package=Join-Path $OutputDirectory 'NWAFU-CampusConnect-1.2.2-Windows-x64'
+$package=Join-Path $OutputDirectory 'NWAFU-CampusConnect-1.2.3-Windows-x64'
 if(Test-Path -LiteralPath $package){throw 'Output package already exists. Choose an empty output directory.'}
 New-Item -ItemType Directory -Path $package | Out-Null
 & (Join-Path $root 'Build.ps1') -OutputDirectory $package
@@ -32,7 +32,7 @@ foreach($name in @('README.md','LICENSE','THIRD-PARTY-NOTICES.txt')){Copy-Item (
 foreach($name in @('Enable-FastStartup.ps1','Disable-FastStartup.ps1')){Copy-Item (Join-Path $root ('scripts/'+$name)) $package}
 $hashes=Get-ChildItem -LiteralPath $package -File -Recurse | Sort-Object FullName | ForEach-Object {(Get-FileHash -LiteralPath $_.FullName).Hash.ToLower()+'  '+$_.FullName.Substring($package.Length+1).Replace('\','/')}
 $hashes | Set-Content (Join-Path $package 'SHA256SUMS.txt') -Encoding UTF8
-$zip=Join-Path $OutputDirectory 'NWAFU-CampusConnect-1.2.2-Windows-x64.zip'
+$zip=Join-Path $OutputDirectory 'NWAFU-CampusConnect-1.2.3-Windows-x64.zip'
 Compress-Archive -LiteralPath $package -DestinationPath $zip
 Get-Item -LiteralPath $zip
 

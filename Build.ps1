@@ -1,4 +1,4 @@
-param([string]$OutputDirectory=(Join-Path $PSScriptRoot 'build'))
+﻿param([string]$OutputDirectory=(Join-Path $PSScriptRoot 'build'))
 $ErrorActionPreference='Stop'
 $compiler=Join-Path $env:WINDIR 'Microsoft.NET\Framework64\v4.0.30319\csc.exe'
 if(-not (Test-Path -LiteralPath $compiler)){throw 'Requires .NET Framework C# compiler on Windows x64.'}

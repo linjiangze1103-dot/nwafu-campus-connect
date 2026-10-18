@@ -1,4 +1,4 @@
-$ErrorActionPreference='Stop'
+﻿$ErrorActionPreference='Stop'
 $exe=Join-Path $PSScriptRoot '西农校园网助手.exe'
 $launcher=Join-Path $PSScriptRoot 'EarlyStart.exe'
 if(!(Test-Path -LiteralPath $exe) -or !(Test-Path -LiteralPath $launcher)){throw 'Please extract the complete release package first.'}

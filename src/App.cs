@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Drawing;
 using System.IO;
@@ -13,7 +13,7 @@ using Microsoft.Win32;
 
 namespace NwafuConnect {
  static class Program {
-  public const string Version="1.2.2";
+  public const string Version="1.2.3";
   public static EventWaitHandle ShowRequest;
   [STAThread] static void Main(string[] args) {
    Application.EnableVisualStyles(); Application.SetCompatibleTextRenderingDefault(false);
