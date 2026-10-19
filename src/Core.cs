@@ -90,7 +90,11 @@ namespace NwafuConnect {
    try {return new JavaScriptSerializer().Deserialize<Account>(Encoding.UTF8.GetString(clear));} finally {Array.Clear(clear,0,clear.Length);}
   }
   public Preferences LoadPreferences() { try{return new JavaScriptSerializer().Deserialize<Preferences>(File.ReadAllText(FilePath("settings.json")))??new Preferences();} catch{return new Preferences();} }
-  public void SavePreferences(Preferences p) {File.WriteAllText(FilePath("settings.json"),new JavaScriptSerializer().Serialize(p),new UTF8Encoding(false));}
+  public void SavePreferences(Preferences p) {
+   string path=FilePath("settings.json"),temp=FilePath("settings-"+Guid.NewGuid().ToString("N")+".tmp");
+   try{File.WriteAllText(temp,new JavaScriptSerializer().Serialize(p),new UTF8Encoding(false));if(File.Exists(path))File.Replace(temp,path,null);else File.Move(temp,path);}
+   finally{if(File.Exists(temp))File.Delete(temp);}
+  }
   public void ClearAccount(){if(HasAccount) File.Delete(FilePath("account.dat"));}
   public void RemoveRuntime(){foreach(string file in Directory.GetFiles(Root,"runtime-*.json")) {try{File.Delete(file);}catch{}}}
  }
