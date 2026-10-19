@@ -22,7 +22,7 @@ namespace NwafuConnect {
    if(s.Contains("登录成功")) return AuthResult.Success;
    if(s.Contains("已登录")) return AuthResult.Online;
    if(Regex.IsMatch(s,@"timeout|timed out|deadline exceeded|no such host|network is unreachable|connection refused|connectex|tls|certificate|连接超时")) return AuthResult.NetworkError;
-   return AuthResult.Rejected;
+   if(Regex.IsMatch(s,@"login failed with error:\s*e\d+|authentication rejected|账户.*停用"))return AuthResult.Rejected; return AuthResult.Unknown;
   }
   public static PortalState ParsePortal(string value) {
    try {
@@ -99,12 +99,13 @@ namespace NwafuConnect {
   public void RemoveRuntime(){foreach(string file in Directory.GetFiles(Root,"runtime-*.json")) {try{File.Delete(file);}catch{}}}
  }
  public static class EngineConfig {
-  public static string Create(Account a) {
+  public static string Create(Account a) {return Create(a,2);}
+  public static string Create(Account a,int requestTimeoutSeconds) {
    return new JavaScriptSerializer().Serialize(new {
     form=new {domain="portal.nwafu.edu.cn", username=a.Username, user_type="", password=a.Password},
     meta=new {n="200",type="1",acid="1",enc="srun_bx1",os="Windows",name="windows",info_prefix="SRBX1",double_stack=false},
     settings=new {
-     basic=new {https=true,skip_cert_verify=false,timeout=10},guardian=new {enable=false,duration=60},
+     basic=new {https=true,skip_cert_verify=false,timeout=requestTimeoutSeconds},guardian=new {enable=false,duration=60},
      backoff=new {enable=false,max_retries=1,initial_duration=10,max_duration=60,exponent_factor=1},
      log=new {debug_level=false,write_file=false},ddns=new {enable=false},reality=new {enable=false},
      custom_header=new Dictionary<string,string>{{"User-Agent","NWAFU-CampusConnect/1.0"}}
