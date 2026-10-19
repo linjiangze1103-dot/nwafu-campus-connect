@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.IO;
 using System.Reflection;
 using System.Windows.Forms;
@@ -19,7 +19,7 @@ class LayoutTests {
  [STAThread] static int Main(){
   Application.EnableVisualStyles();Application.SetCompatibleTextRenderingDefault(false);
   string folder=Path.Combine(AppDomain.CurrentDomain.BaseDirectory,"layout-test-"+Guid.NewGuid().ToString("N"));
-  try{using(var f=new MainWindow(new Store(folder),false)){
+  try{var store=new Store(folder);using(var core=new ConnectionController(store,new FakeTransport(),new FakeNetwork(),new SystemClock(),new NullLog()))using(var f=new MainWindow(store,core,new FakeStartup())){
    ((Timer)typeof(MainWindow).GetField("timer",BindingFlags.Instance|BindingFlags.NonPublic).GetValue(f)).Stop();
    f.Show();Application.DoEvents();Console.WriteLine("Actual desktop DPI: "+f.CurrentAutoScaleDimensions.Width);Verify(f);
   }}finally{if(Directory.Exists(folder))Directory.Delete(folder,true);}
