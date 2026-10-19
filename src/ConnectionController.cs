@@ -25,11 +25,13 @@ namespace NwafuConnect {
   public void Start(Account value){if(value==null)throw new ArgumentNullException("value");lock(gate){account=new Account{Username=value.Username,Password=value.Password};generation++;enabled=true;blocked=false;failures=unknown=externalFailures=0;internet=false;needInternet=true;slowUsed=false;windowStart=due=clock.Milliseconds;prefs.Paused=false;Persist();if(attempt!=null)attempt.Cancel();stage="waiting";}log.Record("start",generation,0,"begin");Signal();}
   public void Stop(){lock(gate){enabled=false;generation++;prefs.Paused=true;Persist();stage="paused";if(attempt!=null)attempt.Cancel();}log.Record("stop",generation,0,"paused");Signal();}
   public void CheckNow(){Account saved=CurrentAccount;if(saved!=null)Start(saved);}
+  public void ClearAccount(){Stop();lock(gate){account=null;store.ClearAccount();}}
   public void Resume(){lock(gate){if(!enabled || blocked)return;windowStart=due=clock.Milliseconds;needInternet=true;}Signal();}
   void Persist(){try{store.SavePreferences(prefs);settingsFailed=false;}catch{settingsFailed=true;log.Record("settings",generation,0,"io");}}
   void Signal(){wake.Set();Notify();}
   void Notify(){if(Interlocked.Exchange(ref notifying,1)!=0)return;ThreadPool.QueueUserWorkItem(_=>{try{var h=Changed;if(h!=null)h(Snapshot);}catch{}finally{Interlocked.Exchange(ref notifying,0);}});}
   void NetworkChanged(NetworkSnapshot value){
+   if(value.Resumed){Resume();return;}
    lock(gate){if(disposed)return;if(net!=null && net.Fingerprint==value.Fingerprint && net.CandidateReady==value.CandidateReady)return;
     net=value;generation++;internet=false;needInternet=true;externalFailures=0;
     if(enabled && !blocked){failures=0;windowStart=clock.Milliseconds;due=clock.Milliseconds+150;if(attempt!=null && (!authenticating || !value.CandidateReady))attempt.Cancel();}

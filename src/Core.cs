@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
@@ -113,51 +113,8 @@ namespace NwafuConnect {
    });
   }
  }
- public static class PortalClient {
-  public static PortalState Query(CancellationToken token) {
-   token.ThrowIfCancellationRequested();
-   var lookup=Dns.GetHostAddressesAsync("portal.nwafu.edu.cn");
-   int completed=WaitHandle.WaitAny(new[]{((IAsyncResult)lookup).AsyncWaitHandle,token.WaitHandle},3000);
-   token.ThrowIfCancellationRequested();
-   if(completed==WaitHandle.WaitTimeout) {
-    lookup.ContinueWith(t=>{var ignored=t.Exception;},System.Threading.Tasks.TaskContinuationOptions.OnlyOnFaulted);
-    return PortalState.Invalid;
-   }
-   bool school=false; foreach(IPAddress ip in lookup.GetAwaiter().GetResult()) {if(Policy.IsCampusAddress(ip.ToString())) school=true;}
-   if(!school) return PortalState.Invalid;
-   var req=(HttpWebRequest)WebRequest.Create("https://portal.nwafu.edu.cn/cgi-bin/rad_user_info?callback=nwafuProbe");
-   req.AllowAutoRedirect=false; req.Proxy=null; req.Timeout=4000; req.ReadWriteTimeout=4000;
-   using(token.Register(delegate{req.Abort();})) {
-    using(var response=(HttpWebResponse)req.GetResponse()) {
-     if(response.StatusCode!=HttpStatusCode.OK) return PortalState.Invalid;
-     using(var reader=new StreamReader(response.GetResponseStream(),Encoding.UTF8)) {var buffer=new char[32768]; int len=reader.ReadBlock(buffer,0,buffer.Length); if(len==buffer.Length) return PortalState.Invalid;return Policy.ParsePortal(new string(buffer,0,len));}
-    }
-   }
-  }
- }
  public sealed class EngineRunner {
   public const string ExpectedHash="509e8842167a479a563f24d154d9d4536b2541b46f1231d13ee37a51a1107785";
   public static bool Verify(string engine) {using(var f=File.OpenRead(engine))using(var sha=SHA256.Create()){return BitConverter.ToString(sha.ComputeHash(f)).Replace("-","").ToLowerInvariant()==ExpectedHash;}}
-  public AuthResult Run(string engine,Store store,Account account,CancellationToken token) {
-   token.ThrowIfCancellationRequested();
-   if(!Verify(engine)) throw new InvalidDataException("认证引擎文件校验失败，请重新解压原始软件包");
-   string path=store.FilePath("runtime-"+Guid.NewGuid().ToString("N")+".json");
-   try {
-    File.WriteAllText(path,EngineConfig.Create(account),new UTF8Encoding(false));
-    var text=new StringBuilder(); object gate=new object();
-    using(var p=new Process()) {
-     p.StartInfo=new ProcessStartInfo(engine,"--config \""+path+"\""){UseShellExecute=false,CreateNoWindow=true,RedirectStandardOutput=true,RedirectStandardError=true,StandardOutputEncoding=Encoding.UTF8,StandardErrorEncoding=Encoding.UTF8,WorkingDirectory=store.Root};
-     DataReceivedEventHandler collect=delegate(object sender,DataReceivedEventArgs e){if(e.Data!=null)lock(gate){if(text.Length<65536)text.AppendLine(e.Data);}};
-     p.OutputDataReceived+=collect; p.ErrorDataReceived+=collect;
-     token.ThrowIfCancellationRequested(); p.Start(); p.BeginOutputReadLine();p.BeginErrorReadLine();
-     using(token.Register(delegate {try{if(!p.HasExited)p.Kill();}catch{}})) {
-      if(!p.WaitForExit(45000)) {try{p.Kill();}catch{}p.WaitForExit();return AuthResult.NetworkError;}
-      p.WaitForExit(); if(token.IsCancellationRequested)return AuthResult.Cancelled;
-      string output;lock(gate){output=text.ToString();}
-      return Policy.Classify(output);
-     }
-    }
-   } finally {try{File.Delete(path);}catch{}}
-  }
  }
 }

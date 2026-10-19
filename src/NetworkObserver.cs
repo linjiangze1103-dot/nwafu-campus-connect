@@ -5,8 +5,8 @@ using System.Net.NetworkInformation;
 using Microsoft.Win32;
 namespace NwafuConnect {
  public sealed class NetworkSnapshot {
-  public readonly string Fingerprint;public readonly bool CandidateReady;public readonly long ObservedMs;
-  public NetworkSnapshot(string fingerprint,bool ready,long observed){Fingerprint=fingerprint;CandidateReady=ready;ObservedMs=observed;}
+  public readonly string Fingerprint;public readonly bool CandidateReady,Resumed;public readonly long ObservedMs;
+  public NetworkSnapshot(string fingerprint,bool ready,long observed,bool resumed=false){Fingerprint=fingerprint;CandidateReady=ready;ObservedMs=observed;Resumed=resumed;}
  }
  public interface INetworkObserver:IDisposable {event Action<NetworkSnapshot> Changed;NetworkSnapshot Read();void Start();}
  public sealed class NetworkObserver:INetworkObserver {
@@ -26,7 +26,7 @@ namespace NwafuConnect {
   public void Start(){NetworkChange.NetworkAddressChanged+=OnChange;NetworkChange.NetworkAvailabilityChanged+=OnAvailability;SystemEvents.PowerModeChanged+=OnPower;}
   void OnChange(object s,EventArgs e){var h=Changed;if(h!=null)h(Read());}
   void OnAvailability(object s,NetworkAvailabilityEventArgs e){OnChange(s,e);}
-  void OnPower(object s,PowerModeChangedEventArgs e){if(e.Mode==PowerModes.Resume)OnChange(s,e);}
+  void OnPower(object s,PowerModeChangedEventArgs e){if(e.Mode==PowerModes.Resume){var value=Read();var h=Changed;if(h!=null)h(new NetworkSnapshot(value.Fingerprint,value.CandidateReady,value.ObservedMs,true));}}
   public void Dispose(){NetworkChange.NetworkAddressChanged-=OnChange;NetworkChange.NetworkAvailabilityChanged-=OnAvailability;SystemEvents.PowerModeChanged-=OnPower;}
  }
 }

@@ -110,7 +110,7 @@ namespace NwafuConnect {
    if(lastStage!=s.Stage){lastStage=s.Stage;AddLog(body);}
   }
   void AddLog(string text){journal.Add(DateTime.Now.ToString("HH:mm:ss")+"  "+text);if(journal.Count>80)journal.RemoveAt(0);log.Lines=journal.ToArray();log.SelectionStart=log.TextLength;log.ScrollToCaret();}
-  void ClearAccount(){if(MessageBox.Show(this,"停止连接、关闭自启并清除本机账号？","清除配置",MessageBoxButtons.YesNo)!=DialogResult.Yes)return;core.Stop();startupState=startup.SetEnabled(false);store.ClearAccount();username.Clear();password.Clear();AddLog("本机保存的账号已清除。");}
+  void ClearAccount(){if(MessageBox.Show(this,"停止连接、关闭自启并清除本机账号？","清除配置",MessageBoxButtons.YesNo)!=DialogResult.Yes)return;core.ClearAccount();startupState=startup.SetEnabled(false);username.Clear();password.Clear();AddLog("本机保存的账号已清除。");}
   void CopyDiagnostics(){try{Clipboard.SetText("西农校园网助手 "+Program.Version+"\r\n"+(diagnostics==null?String.Join("\r\n",journal):String.Join("\r\n",diagnostics.Snapshot())));MessageBox.Show(this,"已复制脱敏诊断。");}catch{MessageBox.Show(this,"剪贴板暂不可用。");}}
   void ShowHelp(){MessageBox.Show(this,"保存账号后自动认证；关闭窗口继续运行，无托盘。\r\n再次双击打开界面；停止状态会保留到下次启动。\r\n关闭自启只影响以后登录，不停止当前连接。\r\n快速自启在登录 Windows 后运行，仍需网卡就绪。\r\n账号仅在本机按 Windows 用户加密保存。\r\n本软件为非官方工具。","使用说明");}
   public void Shutdown(){quitting=true;timer.Stop();Close();}

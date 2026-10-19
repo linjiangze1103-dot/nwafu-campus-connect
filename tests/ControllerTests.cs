@@ -9,8 +9,9 @@ public static class ControllerTests {
   var net=new FakeNetwork();var wire=new FakeTransport();wire.Query=t=>Task.FromResult(wire.Auth>0?PortalState.Online:PortalState.Offline);
   using(var core=new ConnectionController(store,wire,net,new SystemClock(),new NullLog())){
    FastTests.Check(FastTests.Until(()=>core.Snapshot.InternetVerified,1200),"AuthenticatesWithoutMessagePump");
-   FastTests.Check(wire.Auth==1 && wire.Maximum==1,"single login verified online");core.Stop();
+   FastTests.Check(wire.Auth==1 && wire.Maximum==1,"single login verified online");int before=wire.Queries;net.Resume();FastTests.Check(FastTests.Until(()=>wire.Queries>before,500),"resume wakes unchanged network immediately");core.Stop();
    net.Set("two",true);Thread.Sleep(250);FastTests.Check(!core.Snapshot.Enabled && store.LoadPreferences().Paused && wire.Auth==1,"LateSuccessCannotUndoStop");
+   core.ClearAccount();FastTests.Check(core.CurrentAccount==null && !store.HasAccount,"cleared account cannot be reused from memory");store.Save(account);
   }
   net=new FakeNetwork();wire=new FakeTransport();using(var core=new ConnectionController(store,wire,net,new SystemClock(),new NullLog())){Thread.Sleep(150);FastTests.Check(wire.Queries==0,"PausedRestartNeverProbes");}
   store.SavePreferences(new Preferences());net=new FakeNetwork();wire=new FakeTransport();wire.Query=t=>Task.FromResult(PortalState.Invalid);
