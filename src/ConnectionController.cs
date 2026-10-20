@@ -63,7 +63,7 @@ namespace NwafuConnect {
     lock(gate){
      if(!Live(epoch))return;
      if(clock.Milliseconds-lastAuth<2000){due=lastAuth+2000;stage="waiting";return;}
-     lastAuth=clock.Milliseconds;authenticating=true;stage="auth";slow=failures>0 && !slowUsed;if(slow)slowUsed=true;
+     lastAuth=clock.Milliseconds;authenticating=true;internet=false;needInternet=true;stage="auth";slow=failures>0 && !slowUsed;if(slow)slowUsed=true;
     }
     Notify();log.Record("auth",epoch,0,"begin");var watch=clock.Milliseconds;
     var auth=await transport.AuthenticateAsync(saved,slow,token).ConfigureAwait(false);
@@ -91,7 +91,7 @@ namespace NwafuConnect {
     if(ok){externalFailures=0;due=clock.Milliseconds+60000;}else{externalFailures++;due=clock.Milliseconds+(externalFailures==1?1000:externalFailures==2?2000:5000);}
    }log.Record("internet",epoch,0,ok?"ok":"failed");
   }
-  void Apply(long epoch,AuthResult value){lock(gate){if(!Live(epoch))return;result=value;internet=false;
+  void Apply(long epoch,AuthResult value){lock(gate){if(!Live(epoch))return;result=value;internet=false;needInternet=true;
    if(value==AuthResult.PasswordError || value==AuthResult.DeviceLimit || value==AuthResult.Rejected){blocked=true;prefs.Paused=true;Persist();stage="blocked";return;}
    if(value==AuthResult.Unknown && ++unknown>=3){blocked=true;prefs.Paused=true;Persist();stage="unknown";return;}
    failures++;long delay;if(clock.Milliseconds-windowStart<30000)delay=failures==1?500:failures==2?1000:2000;else{long[] backoff={5000,10000,30000,60000};delay=backoff[Math.Min(backoff.Length-1,Math.Max(0,failures-1))];}

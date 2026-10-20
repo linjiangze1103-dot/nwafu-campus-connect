@@ -4,12 +4,12 @@
 
 ## 使用
 
-1. 全部解压 ZIP，双击“安装或更新.exe”。程序安装到当前用户的固定目录，无需管理员权限。直接打开包中的主程序也会进入安装。
+1. 全部解压 ZIP，双击“安装或更新.exe”。程序安装到当前用户的固定目录，无需管理员权限。直接打开包中的主程序也会进入安装；已有同版本时直接打开已安装程序。
 2. 打开“西农校园网助手.exe”，输入账号密码，保存并启动。可从固定目录创建桌面快捷方式。
 3. 在界面开启自启，会自动注册当前用户登录后的快速任务，并保留普通自启回退；无需另运行脚本。
 4. 关闭窗口后后台继续工作，无托盘；再次打开显示同一界面。点击停止才停止自动连接，暂停状态跨重启保留。关闭自启只影响未来登录。
 
-稳定目录：%LOCALAPPDATA%\\Programs\\NWAFU-CampusConnect。账号数据仍在 %LOCALAPPDATA%\\NWAFU-CampusConnect，升级保留凭据与暂停意愿。安装失败会尝试回滚；旧版本备份保留在同级 backup 目录。
+稳定目录：%LOCALAPPDATA%\Programs\NWAFU-CampusConnect。账号数据仍在 %LOCALAPPDATA%\NWAFU-CampusConnect，升级保留凭据与暂停意愿。手动安装后显示界面，静默升级继续在后台运行。安装失败会尝试回滚；旧版本备份保留在同级 backup 目录。
 
 ## 本次变化
 
@@ -30,11 +30,11 @@
 使用 Windows 自带 .NET Framework C# 编译器：
 
 ~~~powershell
-.\\Build.ps1
-.\\tests\\Run-Tests.ps1
-.\\tests\\Run-FastConnectTests.ps1
-.\\tests\\Run-LayoutTests.ps1
-.\\scripts\\Prepare-Release.ps1
+.\Build.ps1
+.\tests\\Run-Tests.ps1
+.\tests\\Run-FastConnectTests.ps1
+.\tests\\Run-LayoutTests.ps1
+.\scripts\\Prepare-Release.ps1
 ~~~
 
 新测试使用模拟传输和隔离数据，不向学校发送测试账号，也不修改真实自启项。布局测试需要桌面环境。构建脚本需 Windows PowerShell 5.1 或更新版，运行程序不依赖 PowerShell。

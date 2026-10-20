@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
@@ -35,22 +35,32 @@ namespace NwafuConnect {
  public sealed class EngineStuckException:Exception {}
  public static class ProcessExecutor {
   public static void RemoveProxy(ProcessStartInfo info){var keys=new List<string>();foreach(string key in info.EnvironmentVariables.Keys)if(key.Equals("http_proxy",StringComparison.OrdinalIgnoreCase)||key.Equals("https_proxy",StringComparison.OrdinalIgnoreCase)||key.Equals("all_proxy",StringComparison.OrdinalIgnoreCase)||key.Equals("no_proxy",StringComparison.OrdinalIgnoreCase))keys.Add(key);foreach(string key in keys)info.EnvironmentVariables.Remove(key);}
+  static readonly EngineProcessGate execution=new EngineProcessGate();
   public static async Task<ProcessOutcome> RunAsync(ProcessStartInfo info,TimeSpan budget,CancellationToken token){
    token.ThrowIfCancellationRequested();info.UseShellExecute=false;info.CreateNoWindow=true;info.RedirectStandardOutput=true;info.RedirectStandardError=true;info.StandardOutputEncoding=Encoding.UTF8;info.StandardErrorEncoding=Encoding.UTF8;RemoveProxy(info);
    var output=new StringBuilder();object gate=new object();
-   using(var p=new Process{StartInfo=info}){
-    DataReceivedEventHandler read=(s,e)=>{if(e.Data!=null)lock(gate){int room=65536-output.Length;if(room>0)output.Append(e.Data.Substring(0,Math.Min(room,e.Data.Length))).Append('\n');}};
-    p.OutputDataReceived+=read;p.ErrorDataReceived+=read;
-    var watch=Stopwatch.StartNew();p.Start();p.BeginOutputReadLine();p.BeginErrorReadLine();
+   var stdout=new TaskCompletionSource<bool>();var stderr=new TaskCompletionSource<bool>();
+   var p=new Process{StartInfo=info};bool started=false,stopAttempted=false;
+   try{execution.Enter();}catch{p.Dispose();throw;}
+   try{
+    Action<string> append=text=>{lock(gate){int room=65536-output.Length;if(room>0)output.Append(text.Substring(0,Math.Min(room,text.Length))).Append('\n');}};
+    p.OutputDataReceived+=(s,e)=>{if(e.Data==null)stdout.TrySetResult(true);else append(e.Data);};
+    p.ErrorDataReceived+=(s,e)=>{if(e.Data==null)stderr.TrySetResult(true);else append(e.Data);};
+    var watch=Stopwatch.StartNew();started=p.Start();if(!started)throw new InvalidOperationException();p.BeginOutputReadLine();p.BeginErrorReadLine();
     bool expired=false;
-    try{
-     while(!p.HasExited){if(token.IsCancellationRequested || watch.Elapsed>=budget){expired=true;break;}await Task.Delay(20).ConfigureAwait(false);}
-     if(expired){try{p.Kill();}catch{}if(!p.WaitForExit(1000))throw new EngineStuckException();}
-     // Never call parameterless WaitForExit: inherited output pipe handles can remain open.
-     await Task.Delay(20).ConfigureAwait(false);
-     token.ThrowIfCancellationRequested();
-     lock(gate)return new ProcessOutcome{TimedOut=expired,Output=output.ToString()};
-    }finally{try{p.CancelOutputRead();}catch{}try{p.CancelErrorRead();}catch{}}
+    while(!p.HasExited){if(token.IsCancellationRequested || watch.Elapsed>=budget){expired=true;break;}await Task.Delay(20).ConfigureAwait(false);}
+    if(expired){stopAttempted=true;try{p.Kill();}catch{}if(!p.WaitForExit(1000))throw new EngineStuckException();}
+    // Drain to EOF, bounded even if a descendant inherited a pipe handle.
+    await Task.WhenAny(Task.WhenAll(stdout.Task,stderr.Task),Task.Delay(250)).ConfigureAwait(false);
+    token.ThrowIfCancellationRequested();
+    lock(gate)return new ProcessOutcome{TimedOut=expired,Output=output.ToString()};
+   }finally{
+    bool confirmed=!started;
+    if(started)try{if(!p.HasExited){if(!stopAttempted){try{p.Kill();}catch{}confirmed=p.WaitForExit(1000);}}else confirmed=true;}catch{}
+    try{p.CancelOutputRead();}catch{}try{p.CancelErrorRead();}catch{}
+    if(confirmed)p.Dispose();else execution.Retain(()=>p.HasExited,()=>p.Dispose());
+    execution.Leave();
+    if(!confirmed)throw new EngineStuckException();
    }
   }
  }

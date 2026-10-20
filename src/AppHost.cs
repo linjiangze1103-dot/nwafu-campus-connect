@@ -7,7 +7,10 @@ using System.Threading;
 using System.Windows.Forms;
 using Microsoft.Win32;
 namespace NwafuConnect {
- public sealed class StartupStatus {public bool Enabled,Fast,PathVerified;public string ErrorCode;}
+ public sealed class StartupStatus {public bool Enabled,Fast,PathVerified,Operational;public string ErrorCode;}
+ public static class PackageLauncher {
+  public static bool CanForward(string installedExe){try{Version installed;return File.Exists(installedExe)&&System.Version.TryParse(FileVersionInfo.GetVersionInfo(installedExe).FileVersion,out installed)&&installed>=new Version(Program.Version+".0");}catch{return false;}}
+ }
  public interface IStartupManager {StartupStatus Read();StartupStatus SetEnabled(bool enabled);}
  public static class Program {
   public const string Version="1.3.0";
@@ -21,6 +24,7 @@ namespace NwafuConnect {
    int setting=Array.IndexOf(args,"--set-autostart");
    if(setting>=0 && setting+1<args.Length){new StartupManager(StartupManager.StableExe).SetEnabled(args[setting+1]=="on");return;}
    if(!String.Equals(Path.GetFullPath(Application.ExecutablePath),Path.GetFullPath(StartupManager.StableExe),StringComparison.OrdinalIgnoreCase)){
+    if(PackageLauncher.CanForward(StartupManager.StableExe)){Process.Start(new ProcessStartInfo(StartupManager.StableExe,auto?"--autostart":""){UseShellExecute=false,CreateNoWindow=true,WorkingDirectory=StartupManager.StableDirectory});return;}
     string installer=Path.Combine(AppDomain.CurrentDomain.BaseDirectory,"安装或更新.exe");
     if(File.Exists(installer)){Process.Start(new ProcessStartInfo(installer){UseShellExecute=false,CreateNoWindow=true,WorkingDirectory=AppDomain.CurrentDomain.BaseDirectory});return;}
     if(!auto)MessageBox.Show("请先全部解压软件包，再运行安装或更新程序。");return;
@@ -32,7 +36,7 @@ namespace NwafuConnect {
     using(var exit=new EventWaitHandle(false,EventResetMode.AutoReset,ExitName)){
      try{
       var store=new Store(Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),"NWAFU-CampusConnect"));
-      var startup=new StartupManager(Application.ExecutablePath);if(auto&&!startup.Read().Enabled)return;
+      var startup=new StartupManager(Application.ExecutablePath);if(auto&&!startup.ShouldAutoStart())return;
       using(var log=new DiagnosticLog(store,clock,Version,auto?"autostart":"manual")){
        store.RemoveRuntime();
        using(var core=new ConnectionController(store,new ConnectionTransport(Path.Combine(AppDomain.CurrentDomain.BaseDirectory,"engine","bitsrun.exe"),store,log),new NetworkObserver(clock),clock,log))

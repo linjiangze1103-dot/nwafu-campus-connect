@@ -2,10 +2,10 @@ using System;
 using System.IO;
 using NwafuConnect;
 public sealed class FakeStartupBackend:IStartupBackend {
- public bool? Marker;public string RunValue,TaskValue;public bool FailTask;public bool TaskEnabled=true;
+ public bool? Marker;public string RunValue,TaskValue;public bool FailTask,FailReadTask;public bool TaskEnabled=true;
  public bool? ReadMarker(){return Marker;}public void WriteMarker(bool value){Marker=value;}
  public string ReadRun(){return RunValue;}public void WriteRun(string value){RunValue=value;}
- public string ReadTaskPath(){return TaskEnabled?TaskValue:null;}public string ExportTask(){return TaskValue;}
+ public string ReadTaskPath(){if(FailReadTask)throw new Exception();return TaskEnabled?TaskValue:null;}public string ExportTask(){return TaskValue;}
  public void RegisterTask(string path){if(FailTask)throw new Exception();TaskValue=path;}
  public void RestoreTask(string xml){TaskValue=xml;}public void DeleteTask(){if(FailTask)throw new Exception();TaskValue=null;}
  public void RestoreMarker(bool? value){Marker=value;}
@@ -14,6 +14,8 @@ public static class StartupTests {
  public static void Run(){
   string exe=Path.Combine(FastTests.Temp(),"西农校园网助手.exe");var b=new FakeStartupBackend();var s=new StartupManager(exe,b);
   b.FailTask=true;var status=s.SetEnabled(true);FastTests.Check(status.Enabled && !status.Fast && status.ErrorCode!=null,"PartialRegistrationNeverReportsFast");
+  FastTests.Check(Installer.CanUseStartup(status),"installer accepts verified Run fallback when task registration fails");
+  b.FailReadTask=true;FastTests.Check(s.ShouldAutoStart(),"startup permission does not depend on scheduler COM");b.FailReadTask=false;
   b.TaskValue=exe;status=s.SetEnabled(false);FastTests.Check(!status.Enabled && b.Marker==false,"DisabledMarkerBlocksStaleTask");
   b.FailTask=false;status=s.SetEnabled(true);FastTests.Check(status.Fast && status.PathVerified,"registered task and Run read back");
   var backup=s.Capture();s.SetEnabled(false);s.Restore(backup);FastTests.Check(s.Read().Fast,"RollbackRestoresExactStartupState");

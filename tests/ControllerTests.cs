@@ -39,5 +39,34 @@ public static class ControllerTests {
    Interlocked.Exchange(ref time.Now,6000);
    FastTests.Check(FastTests.Until(()=>wire.Queries>queries && wire.Auth==1,1000),"expired session recovered during external-only retries");
   }
+  store.SavePreferences(new Preferences());net=new FakeNetwork();wire=new FakeTransport();time=new FakeClock();
+  wire.Query=t=>Task.FromResult(PortalState.Online);
+  using(var core=new ConnectionController(store,wire,net,time,new NullLog())){
+   FastTests.Check(FastTests.Until(()=>core.Snapshot.InternetVerified && !core.Snapshot.Busy,1000),"recovery fixture initially verified");
+   int external=wire.Internet;wire.Query=t=>Task.FromResult(PortalState.Invalid);Interlocked.Exchange(ref time.Now,60001);
+   FastTests.Check(FastTests.Until(()=>!core.Snapshot.InternetVerified && !core.Snapshot.Busy,1000),"failed school probe clears verified flag");
+   wire.Query=t=>Task.FromResult(PortalState.Online);Interlocked.Exchange(ref time.Now,70001);
+   FastTests.Check(FastTests.Until(()=>core.Snapshot.InternetVerified && wire.Internet>external,1000),"same-route recovery verifies external connectivity again");
+  }
+  store.SavePreferences(new Preferences());net=new FakeNetwork();wire=new FakeTransport();time=new FakeClock();
+  wire.Query=t=>Task.FromResult(PortalState.Online);
+  using(var core=new ConnectionController(store,wire,net,time,new NullLog())){
+   FastTests.Check(FastTests.Until(()=>core.Snapshot.InternetVerified && !core.Snapshot.Busy,1000),"reauth fixture initially verified");
+   var finish=new TaskCompletionSource<AuthResult>();wire.Login=t=>finish.Task;
+   wire.Query=t=>Task.FromResult(wire.Auth>0?PortalState.Online:PortalState.Offline);wire.External=t=>Task.FromResult(false);Interlocked.Exchange(ref time.Now,60001);
+   FastTests.Check(FastTests.Until(()=>core.Snapshot.Stage=="auth",1000) && !core.Snapshot.InternetVerified,"new authentication clears previous external evidence");
+   finish.SetResult(AuthResult.Success);
+   FastTests.Check(FastTests.Until(()=>core.Snapshot.Stage=="internet" && wire.Internet==2,1000),"successful reauthentication performs fresh external verification");
+  }
+  store.SavePreferences(new Preferences());net=new FakeNetwork();wire=new FakeTransport();time=new FakeClock();
+  var engineGate=new EngineProcessGate();int processStarts=0;
+  wire.Login=t=>{engineGate.Enter();processStarts++;engineGate.Retain(()=>false,()=>{});engineGate.Leave();net.Set("new-during-auth",true);throw new EngineStuckException();};
+  using(var core=new ConnectionController(store,wire,net,time,new NullLog())){
+   FastTests.Check(FastTests.Until(()=>processStarts==1 && !core.Snapshot.Busy,1000),"unconfirmed child fixture crosses network generation");
+   Interlocked.Exchange(ref time.Now,5000);
+   FastTests.Check(FastTests.Until(()=>core.Snapshot.Blocked,1000) && processStarts==1,"network generation cannot bypass retained engine");
+   core.Stop();Interlocked.Exchange(ref time.Now,10000);core.Start(account);
+   FastTests.Check(FastTests.Until(()=>core.Snapshot.Blocked,1000) && processStarts==1,"Stop then Start cannot bypass retained engine");
+  }
  }finally{Directory.Delete(root,true);}}
 }

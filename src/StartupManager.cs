@@ -17,11 +17,12 @@ namespace NwafuConnect {
   public static string StableExe{get{return Path.Combine(StableDirectory,"西农校园网助手.exe");}}
   public static string RunCommand(string path){return "\""+path+"\" --autostart";}
   public static string ParseRun(string command){if(String.IsNullOrEmpty(command)||!command.EndsWith("\" --autostart",StringComparison.OrdinalIgnoreCase)||command[0]!='"')return null;string path=command.Substring(1,command.Length-14);return Path.GetFileName(path)=="西农校园网助手.exe"?path:null;}
+  public bool ShouldAutoStart(){try{return backend.ReadMarker()??(ParseRun(backend.ReadRun())!=null);}catch{return false;}}
   public StartupStatus Read(){
    try{
     var marker=backend.ReadMarker();string run=backend.ReadRun();bool enabled=marker??(ParseRun(run)!=null);
     string task=backend.ReadTaskPath();bool taskOk=String.Equals(task,exe,StringComparison.OrdinalIgnoreCase),runOk=String.Equals(run,RunCommand(exe),StringComparison.OrdinalIgnoreCase);
-    return new StartupStatus{Enabled=enabled,Fast=enabled&&taskOk,PathVerified=taskOk&&runOk,ErrorCode=enabled&&!taskOk&&!runOk?"启动路径需要修复":null};
+    return new StartupStatus{Enabled=enabled,Fast=enabled&&taskOk,Operational=enabled&&(taskOk||runOk),PathVerified=taskOk&&runOk,ErrorCode=enabled&&!taskOk&&!runOk?"启动路径需要修复":null};
    }catch{return new StartupStatus{ErrorCode="无法读取自启配置"};}
   }
   public StartupStatus SetEnabled(bool enabled){
