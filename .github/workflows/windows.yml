@@ -13,3 +13,6 @@ jobs:
       - name: Core tests
         shell: powershell
         run: .\tests\Run-Tests.ps1
+      - name: Headless controller, transport, startup and installer tests
+        shell: powershell
+        run: .\tests\Run-FastConnectTests.ps1 -Suite CI

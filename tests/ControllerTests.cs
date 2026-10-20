@@ -31,5 +31,13 @@ public static class ControllerTests {
   using(var core=new ConnectionController(store,wire,net,new SystemClock(),new NullLog())){FastTests.Check(FastTests.Until(()=>core.Snapshot.InternetVerified,1000) && wire.Auth==1,"UncertainLoginQueriesBeforeRetry");}
   store.SavePreferences(new Preferences());net=new FakeNetwork();wire=new FakeTransport();wire.Login=t=>Task.FromResult(AuthResult.PasswordError);
   using(var core=new ConnectionController(store,wire,net,new SystemClock(),new NullLog())){FastTests.Check(FastTests.Until(()=>core.Snapshot.Blocked,1000),"explicit credential rejection pauses");net.Set("changed",true);Thread.Sleep(250);FastTests.Check(wire.Auth==1 && store.LoadPreferences().Paused,"network event cannot resume credential rejection");}
+  store.SavePreferences(new Preferences());net=new FakeNetwork();wire=new FakeTransport();var time=new FakeClock();
+  wire.Query=t=>Task.FromResult(PortalState.Online);wire.External=t=>Task.FromResult(false);
+  using(var core=new ConnectionController(store,wire,net,time,new NullLog())){
+   FastTests.Check(FastTests.Until(()=>core.Snapshot.Stage=="internet" && !core.Snapshot.Busy,1000),"external failure keeps authenticated state");
+   int queries=wire.Queries;wire.Query=t=>Task.FromResult(wire.Auth>0?PortalState.Online:PortalState.Offline);
+   Interlocked.Exchange(ref time.Now,6000);
+   FastTests.Check(FastTests.Until(()=>wire.Queries>queries && wire.Auth==1,1000),"expired session recovered during external-only retries");
+  }
  }finally{Directory.Delete(root,true);}}
 }

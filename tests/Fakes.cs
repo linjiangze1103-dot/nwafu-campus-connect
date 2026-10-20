@@ -17,3 +17,4 @@ public sealed class FakeTransport:IConnectionTransport {
  public Task<bool> CheckInternetAsync(CancellationToken t){Interlocked.Increment(ref Internet);return External(t);}
 }
 public sealed class NullLog:IDiagnostics {public void Record(string s,long g,long e,string o){}}
+public sealed class FakeClock:IClock {public long Now;public long Milliseconds{get{return Interlocked.Read(ref Now);}}public DateTime UtcNow{get{return DateTime.UtcNow;}}}

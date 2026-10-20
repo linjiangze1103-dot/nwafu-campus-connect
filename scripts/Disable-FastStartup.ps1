@@ -1,2 +1,3 @@
-﻿Unregister-ScheduledTask -TaskName 'NWAFU-CampusConnect-EarlyStart' -Confirm:$false -ErrorAction SilentlyContinue
-Write-Output 'Fast logon task removed; standard app startup setting is unchanged.'
+﻿$exe=Join-Path $env:LOCALAPPDATA 'Programs/NWAFU-CampusConnect/西农校园网助手.exe'
+if(!(Test-Path -LiteralPath $exe)){throw 'Install the complete package first.'}
+Start-Process -FilePath $exe -ArgumentList '--set-autostart','off' -WindowStyle Hidden -Wait

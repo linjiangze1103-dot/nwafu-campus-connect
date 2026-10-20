@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.IO;
 using System.Threading;
 using System.Threading.Tasks;
@@ -9,7 +9,7 @@ namespace NwafuConnect {
  }
  public sealed class ConnectionController:IDisposable {
   readonly object gate=new object();readonly AutoResetEvent wake=new AutoResetEvent(false);readonly Store store;readonly IConnectionTransport transport;readonly INetworkObserver network;readonly IClock clock;readonly IDiagnostics log;readonly Thread worker;
-  Account account;Preferences prefs;NetworkSnapshot net;CancellationTokenSource attempt;bool enabled,blocked,busy,internet,disposed,authenticating,settingsFailed,needInternet=true,slowUsed;int failures,unknown,externalFailures;long generation,due,windowStart,lastAuth=-10000,lastSnapshot;string stage="paused";AuthResult result=AuthResult.Unknown;
+  Account account;Preferences prefs;NetworkSnapshot net;CancellationTokenSource attempt;bool enabled,blocked,busy,internet,disposed,authenticating,settingsFailed,needInternet=true,slowUsed;int failures,unknown,externalFailures;long generation,due,windowStart,lastAuth=-10000,lastSnapshot,lastPortalOnline;string stage="paused";AuthResult result=AuthResult.Unknown;
   int notifying;public event Action<ConnectionSnapshot> Changed;
   public ConnectionController(Store store,IConnectionTransport transport,INetworkObserver network,IClock clock,IDiagnostics log){
    this.store=store;this.transport=transport;this.network=network;this.clock=clock;this.log=log;prefs=store.LoadPreferences();
@@ -50,7 +50,7 @@ namespace NwafuConnect {
   TimeSpan ProbeBudget(){return TimeSpan.FromMilliseconds(clock.Milliseconds-windowStart<30000?1500:3000);}
   async Task Cycle(){
    long epoch;CancellationToken token;Account saved;bool onlyInternet;
-   lock(gate){epoch=generation;token=attempt.Token;saved=account;onlyInternet=result==AuthResult.Online && needInternet && stage=="internet";stage=onlyInternet?"internet":"probe";}
+   lock(gate){epoch=generation;token=attempt.Token;saved=account;onlyInternet=result==AuthResult.Online && needInternet && stage=="internet" && clock.Milliseconds-lastPortalOnline<5000;stage=onlyInternet?"internet":"probe";}
    Notify();
    try{
     if(onlyInternet){await VerifyInternet(epoch,token).ConfigureAwait(false);return;}
@@ -82,7 +82,7 @@ namespace NwafuConnect {
    catch{Apply(epoch,AuthResult.NetworkError);}
   }
   async Task Online(long epoch,CancellationToken token){
-   bool verify;lock(gate){if(!Live(epoch))return;result=AuthResult.Online;failures=unknown=0;stage="online";due=clock.Milliseconds+60000;verify=needInternet;}
+   bool verify;lock(gate){if(!Live(epoch))return;result=AuthResult.Online;lastPortalOnline=clock.Milliseconds;failures=unknown=0;stage="online";due=clock.Milliseconds+60000;verify=needInternet;}
    log.Record("online",epoch,0,"Online");if(verify)await VerifyInternet(epoch,token).ConfigureAwait(false);
   }
   async Task VerifyInternet(long epoch,CancellationToken token){

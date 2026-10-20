@@ -1,2 +1,0 @@
-using System;
-class EarlyStartTests {static int Main(){string exe=@"D:\Example\西农校园网助手.exe";if(EarlyStart.Configured(null,exe))throw new Exception("disabled startup allowed");if(EarlyStart.Configured("\"D:\\Old\\西农校园网助手.exe\" --autostart",exe))throw new Exception("old path allowed");if(!EarlyStart.Configured("\""+exe+"\" --autostart",exe))throw new Exception("enabled startup blocked");Console.WriteLine("PASS early launcher honors disabled startup and exact active install path");return 0;}}
